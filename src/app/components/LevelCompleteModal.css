@@ -1,0 +1,40 @@
+/* components/LevelCompleteModal.css */
+#levelComplete {
+  background: rgba(0, 0, 0, 0.95);
+  padding: 40px 60px;
+  border: 2px solid #00ff00;
+  text-align: center;
+  box-shadow: 0 0 30px #00ff00;
+  border-radius: 8px;
+  animation: modalAppear 0.3s ease-out;
+}
+
+#levelComplete h1 {
+  color: #00ff00;
+  margin: 0 0 20px 0;
+  font-size: 48px;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+  letter-spacing: 2px;
+}
+
+#levelComplete p {
+  font-size: 20px;
+  margin: 10px 0;
+}
+
+#levelComplete span {
+  color: #ffff00;
+  font-weight: bold;
+  font-size: 24px;
+}
+
+@keyframes modalAppear {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

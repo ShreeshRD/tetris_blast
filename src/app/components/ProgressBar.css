@@ -1,0 +1,32 @@
+/* components/ProgressBar.css */
+.wall-progress {
+  margin-top: 20px;
+  padding: 10px;
+  background: #222;
+  border-radius: 5px;
+  font-size: 16px;
+  text-align: center;
+}
+
+.wall-progress > div:first-child {
+  color: #ff6666;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.wall-progress-bar {
+  height: 10px;
+  background: #333;
+  border-radius: 5px;
+  margin-top: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+.wall-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff0000, #ff6600, #ffaa00);
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(255, 68, 0, 0.5);
+}

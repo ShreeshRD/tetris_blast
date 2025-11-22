@@ -2,9 +2,9 @@
 
 import { CONFIG, COLS, ROWS, EMPTY } from '@/app/config/constants';
 import { GameState, GameAction } from '@/app/types';
-import { getRandomTetromino, lockTetromino, hardDrop } from '@/app/services/tetrominoManager';
+import { getRandomTetromino, lockTetromino, hardDrop, checkAndClearLines } from '@/app/services/tetrominoManager';
 import { checkCollision } from '@/app/services/collision';
-import { findFloatingPieces } from '@/app/services/gravity';
+import { findFloatingPieces, applyGravity } from '@/app/services/gravity';
 import { generateWall } from '@/app/services/wallManager';
 
 // Generate initial tetrominos ONCE at module load
@@ -33,6 +33,7 @@ export const initialState: GameState = {
   clearingRows: [],
   remainingWall: 0,
   totalWall: 0,
+  isGravityActive: false,
 };
 
 // NAMED EXPORT for reducer function
@@ -67,41 +68,41 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
       
       if (dy > 0) {
-        const { grid, clearedLines } = lockTetromino(state.grid, state.currentTetromino, state.currentPosition);
+        // Step 1: Lock the piece to the grid (just adds piece, doesn't clear lines)
+        const gridWithPiece = lockTetromino(state.grid, state.currentTetromino, state.currentPosition);
+        
+        // Step 2: Clear any completed lines
+        const { grid, clearedLines } = checkAndClearLines(gridWithPiece);
+        
+        // Step 3: Check for floating pieces (now unsupported after line clear)
+        const { grid: gridWithFloating, hasFloatingPieces } = findFloatingPieces(grid);
+        const lineScore = clearedLines > 0 ? CONFIG.BASE_LINE_SCORE * clearedLines * CONFIG.SCORE_MULTIPLIER : 0;
+        
+        if (hasFloatingPieces) {
+          // Activate gravity, don't spawn next piece yet
+          return {
+            ...state,
+            grid: gridWithFloating,
+            score: state.score + lineScore,
+            lines: state.lines + clearedLines,
+            currentTetromino: null,
+            isGravityActive: true,
+          };
+        }
+
+        // No floating pieces - spawn next tetromino
         const newTetromino = state.nextTetromino;
         const newTetrominoPosition = { x: Math.floor((COLS - newTetromino!.shape[0].length) / 2), y: 0 };
 
-        if (checkCollision(grid, newTetromino!.shape, newTetrominoPosition)) {
-          return { ...state, grid, gameOver: true, gameOverReason: 'Game Over' };
-        }
-        
-        if (clearedLines > 0) {
-          const { grid: gridWithFloating, hasFloatingPieces } = findFloatingPieces(grid);
-          const lineScore = CONFIG.BASE_LINE_SCORE * clearedLines * CONFIG.SCORE_MULTIPLIER;
-          
-          if (hasFloatingPieces) {
-            return {
-              ...state,
-              grid: gridWithFloating,
-              score: state.score + lineScore,
-              lines: state.lines + clearedLines,
-            };
-          }
-
-          return {
-            ...state,
-            grid,
-            score: state.score + lineScore,
-            lines: state.lines + clearedLines,
-            currentTetromino: newTetromino,
-            nextTetromino: getRandomTetromino(),
-            currentPosition: newTetrominoPosition,
-          };
+        if (checkCollision(gridWithFloating, newTetromino!.shape, newTetrominoPosition)) {
+          return { ...state, grid: gridWithFloating, gameOver: true, gameOverReason: 'Game Over' };
         }
         
         return {
           ...state,
-          grid,
+          grid: gridWithFloating,
+          score: state.score + lineScore,
+          lines: state.lines + clearedLines,
           currentTetromino: newTetromino,
           nextTetromino: getRandomTetromino(),
           currentPosition: newTetrominoPosition,
@@ -129,10 +130,50 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!state.currentTetromino) return state;
       
       const { newPosition, dropDistance } = hardDrop(state.grid, state.currentTetromino, state.currentPosition);
+      
+      // Step 1: Lock the piece to the grid
+      const gridWithPiece = lockTetromino(state.grid, state.currentTetromino, newPosition);
+      
+      // Step 2: Clear any completed lines
+      const { grid, clearedLines } = checkAndClearLines(gridWithPiece);
+      
+      // Step 3: Check for floating pieces (now unsupported after line clear)
+      const { grid: gridWithFloating, hasFloatingPieces } = findFloatingPieces(grid);
+      const lineScore = clearedLines > 0 ? CONFIG.BASE_LINE_SCORE * clearedLines * CONFIG.SCORE_MULTIPLIER : 0;
+      
+      if (hasFloatingPieces) {
+        return {
+          ...state,
+          grid: gridWithFloating,
+          score: state.score + dropDistance * CONFIG.HARD_DROP_POINTS + lineScore,
+          lines: state.lines + clearedLines,
+          currentTetromino: null,
+          isGravityActive: true,
+        };
+      }
+
+      // No floating pieces - spawn next tetromino
+      const newTetromino = state.nextTetromino;
+      const newTetrominoPosition = { x: Math.floor((COLS - newTetromino!.shape[0].length) / 2), y: 0 };
+
+      if (checkCollision(gridWithFloating, newTetromino!.shape, newTetrominoPosition)) {
+        return { 
+          ...state, 
+          grid: gridWithFloating, 
+          gameOver: true, 
+          gameOverReason: 'Game Over',
+          score: state.score + dropDistance * CONFIG.HARD_DROP_POINTS + lineScore
+        };
+      }
+
       return { 
         ...state, 
-        currentPosition: newPosition,
-        score: state.score + dropDistance * CONFIG.HARD_DROP_POINTS 
+        grid: gridWithFloating,
+        currentPosition: newTetrominoPosition,
+        currentTetromino: newTetromino,
+        nextTetromino: getRandomTetromino(),
+        score: state.score + dropDistance * CONFIG.HARD_DROP_POINTS + lineScore,
+        lines: state.lines + clearedLines
       };
     }
     
@@ -168,8 +209,32 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
     
     case 'APPLY_GRAVITY': {
-      // For now, just return the state
-      return state;
+      if (!state.isGravityActive) return state;
+      
+      const { grid: gridWithFloating, hasFloatingPieces } = findFloatingPieces(state.grid);
+      
+      if (!hasFloatingPieces) {
+        // Gravity settled - spawn next tetromino
+        const newTetromino = state.nextTetromino || getRandomTetromino();
+        const newTetrominoPosition = { x: Math.floor((COLS - newTetromino.shape[0].length) / 2), y: 0 };
+        
+        if (checkCollision(state.grid, newTetromino.shape, newTetrominoPosition)) {
+          return { ...state, isGravityActive: false, gameOver: true, gameOverReason: 'Game Over' };
+        }
+        
+        return {
+          ...state,
+          isGravityActive: false,
+          currentTetromino: newTetromino,
+          nextTetromino: getRandomTetromino(),
+          currentPosition: newTetrominoPosition,
+        };
+      }
+      
+      // Apply one step of gravity
+      const newGrid = applyGravity(gridWithFloating);
+      
+      return { ...state, grid: newGrid };
     }
     
     case 'GAME_OVER':

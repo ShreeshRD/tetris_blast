@@ -1,4 +1,3 @@
-// types/index.ts
 export type CellType = 0 | 1 | 2 | 3;
 export type Position = { x: number; y: number };
 export type TetrominoType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
@@ -28,6 +27,7 @@ export interface GameState {
   clearingRows: number[];
   remainingWall: number;
   totalWall: number;
+  isGravityActive: boolean;
 }
 
 export type GameAction =

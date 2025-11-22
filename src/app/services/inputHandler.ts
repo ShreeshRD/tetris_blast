@@ -3,10 +3,11 @@ import { GameState, GameAction } from '@/app/types';
 import { CONFIG } from '@/app/config/constants';
 
 export const handleInput = (
-  state: GameState,
+  stateRef: React.MutableRefObject<GameState>,
   dispatch: React.Dispatch<GameAction>
 ): (() => void) => {
   const handleKeyDown = (e: KeyboardEvent) => {
+    const state = stateRef.current;
     if (state.gameOver || state.levelComplete) return;
     
     if (state.isPaused && e.key.toLowerCase() !== 'p') return;

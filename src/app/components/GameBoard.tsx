@@ -1,6 +1,6 @@
 // components/GameBoard.tsx
 "use client";
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@/app/context/GameContext';
 import GridCell from './GridCell';
 import { PLAYER } from '@/app/config/constants';
@@ -11,6 +11,11 @@ import { CellType } from '@/app/types';
 
 export default function GameBoard() {
   const { state, dispatch } = useGame();
+  const stateRef = useRef(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
   
   useEffect(() => {
     dispatch({ type: 'START_GAME' });
@@ -24,9 +29,9 @@ export default function GameBoard() {
   }, [state.gameOver, state.levelComplete, state.fallSpeed, state.wallRiseInterval, state.isPaused, state.currentTetromino, dispatch]);
   
   useEffect(() => {
-    const cleanup = handleInput(state, dispatch);
+    const cleanup = handleInput(stateRef, dispatch);
     return cleanup;
-  }, [state.gameOver, state.levelComplete, state.isPaused, dispatch]);
+  }, [dispatch]);
 
   const renderGrid = useCallback(() => {
     const tempGrid = state.grid.map(row => [...row]);

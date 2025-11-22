@@ -1,4 +1,3 @@
-// services/tetrominoManager.ts
 import { TETROMINOES, COLS, PLAYER, CONFIG, ROWS, EMPTY } from '@/app/config/constants';
 import { Tetromino, CellType } from '@/app/types';
 import { checkCollision } from './collision';
@@ -8,7 +7,7 @@ export const getRandomTetromino = (): Tetromino => {
   const randomKey = keys[Math.floor(Math.random() * keys.length)];
   const tetromino = TETROMINOES[randomKey];
   return {
-    shape: tetromino.shape,
+    shape: tetromino.shape.map(row => [...row]),
     color: tetromino.color,
     type: randomKey
   };
@@ -18,7 +17,7 @@ export const lockTetromino = (
   grid: CellType[][],
   tetromino: Tetromino,
   position: { x: number; y: number }
-): { grid: CellType[][]; clearedLines: number } => {
+): CellType[][] => {
   const newGrid = grid.map(row => [...row]);
   
   for (let row = 0; row < tetromino.shape.length; row++) {
@@ -34,7 +33,8 @@ export const lockTetromino = (
     }
   }
   
-  return checkAndClearLines(newGrid);
+  // Don't clear lines here - let gravity settle first
+  return newGrid;
 };
 
 export const hardDrop = (
@@ -61,14 +61,14 @@ export const hardDrop = (
 };
 
 export const checkAndClearLines = (grid: CellType[][]): { grid: CellType[][]; clearedLines: number } => {
-  const fullRows = grid.filter(row => row.every(cell => cell !== EMPTY));
-  const clearedLines = fullRows.length;
-  
-  const newGrid = grid.filter(row => row.some(cell => cell === EMPTY));
-  
-  for (let i = 0; i < clearedLines; i++) {
-    newGrid.unshift(Array(COLS).fill(EMPTY));
-  }
+  let clearedLines = 0;
+  const newGrid = grid.map(row => {
+    if (row.every(cell => cell !== EMPTY)) {
+      clearedLines++;
+      return Array(COLS).fill(EMPTY);
+    }
+    return [...row];
+  });
   
   return { grid: newGrid, clearedLines };
 };

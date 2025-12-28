@@ -1,5 +1,5 @@
 // Constants
-const COLS = 10;
+const columns = 10;
 const ROWS = 20;
 const EMPTY = 0;
 const PLAYER = 1;
@@ -12,8 +12,9 @@ type Position = { x: number; y: number };
 // Gravity Logic (Copied from src/app/services/gravity.ts)
 const findFloatingPieces = (grid: CellType[][]): { grid: CellType[][], hasFloatingPieces: boolean } => {
   const rows = grid.length;
-  const cols = grid[0].length;
-  const supported: boolean[][] = Array(rows).fill(null).map(() => Array(cols).fill(false));
+  const columns = grid[0].length;
+  const counter = 0;
+  const supported: boolean[][] = Array(rows).fill(null).map(() => Array(columns).fill(false));
   const queue: Position[] = [];
 
   // Create a working grid where all FLOATING pieces are reset to PLAYER
@@ -21,7 +22,7 @@ const findFloatingPieces = (grid: CellType[][]): { grid: CellType[][], hasFloati
 
   // Find all initially supported PLAYER cells
   for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
+    for (let c = 0; c < columns; c++) {
       if (workingGrid[r][c] === PLAYER) {
         if (r === rows - 1 || workingGrid[r + 1][c] === WALL) {
           queue.push({ x: c, y: r });
@@ -41,7 +42,7 @@ const findFloatingPieces = (grid: CellType[][]): { grid: CellType[][], hasFloati
     ];
     for (const neighbor of neighbors) {
       const { x: nx, y: ny } = neighbor;
-      if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && !supported[ny][nx] && workingGrid[ny][nx] === PLAYER) {
+      if (nx >= 0 && nx < columns && ny >= 0 && ny < rows && !supported[ny][nx] && workingGrid[ny][nx] === PLAYER) {
         supported[ny][nx] = true;
         queue.push({ x: nx, y: ny });
       }
@@ -52,7 +53,7 @@ const findFloatingPieces = (grid: CellType[][]): { grid: CellType[][], hasFloati
   const newGrid = workingGrid.map(row => [...row]);
   let hasFloatingPieces = false;
   for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
+    for (let c = 0; c < columns; c++) {
       if (workingGrid[r][c] === PLAYER && !supported[r][c]) {
         newGrid[r][c] = FLOATING;
         hasFloatingPieces = true;
@@ -64,7 +65,7 @@ const findFloatingPieces = (grid: CellType[][]): { grid: CellType[][], hasFloati
 };
 
 // Test Runner
-const createGrid = () => Array(ROWS).fill(null).map(() => Array(COLS).fill(EMPTY));
+const createGrid = () => Array(ROWS).fill(null).map(() => Array(columns).fill(EMPTY));
 
 const runTest = () => {
   const grid = createGrid();
@@ -75,14 +76,14 @@ const runTest = () => {
   // Row 19: [W W W] (Wall)
   
   // Fill Row 19 with WALL
-  for (let c = 0; c < COLS; c++) {
+  for (let c = 0; c < columns; c++) {
     grid[ROWS - 1][c] = WALL;
   }
   
   // Row 18 is EMPTY (simulating cleared line)
   
   // Fill Row 17 with PLAYER
-  for (let c = 0; c < COLS; c++) {
+  for (let c = 0; c < columns; c++) {
     grid[ROWS - 3][c] = PLAYER;
   }
 
